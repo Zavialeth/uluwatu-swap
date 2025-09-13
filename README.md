@@ -48,10 +48,34 @@ The goal of this project is to **learn and experiment** with modern DeFi tooling
 
 ---
 
+## 📧 Contact
 
+For questions, feedback, or suggestions:  
+**E-mail:** [zavial@dmail.ai](mailto:zavial@dmail.ai)
 
 ---
-🌴 About the Name
+
+##🌴 About the Name
 
 Uluwatu is a famous surfing spot in Bali, Indonesia.
 Just like surfing, diving into DeFi can be exciting and risky — so always stay balanced and ride the wave responsibly! 🌊
+
+---
+
+## ⚠️ Disclaimer
+
+> **Use at Your Own Risk**  
+> This project is for **educational purposes only**.  
+>
+> - UluwatuSwap is **not audited** and may contain bugs or vulnerabilities.  
+> - **No one is responsible** for any financial losses that occur through using this app or interacting with the associated smart contracts.  
+> - **Do not use real funds** you cannot afford to lose.  
+>
+> By using this project, you acknowledge that **you assume all risks**.
+
+
+---
+
+## 📝 License
+
+This project is open-source and available under the [MIT License](./LICENSE).
