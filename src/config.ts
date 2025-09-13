@@ -1,75 +1,75 @@
 // src/config.ts
 
 /**
- * ✅ Doel van dit bestand:
- * - Behoud je bestaande env-gedreven configuratie voor Trade.tsx (ongewijzigd gedrag).
- * - Voeg de extra velden toe die Liquidity.tsx nodig heeft (ADDR.WETH/DEFI_D/NFPM/…).
- * - Laat .env overrides voorgaan, met werkende Arbitrum defaults als fallback.
- *
- * Je hoeft niets elders aan te passen.
+ * Centrale configuratie voor UluwatuSwap:
+ * - Arbitrum defaults
+ * - ENV-overrides via VITE_* (optioneel)
+ * - Export ADDR (incl. FACTORY), TICKS, en helpers (cfg, resolveActivePool, isEthMode)
  */
 
-// -------------------- Bestaande (jouw) velden in ADDR --------------------
+const DEFAULTS = {
+  CHAIN_ID: 42161,
+  // Infra
+  QUOTER_V2: '0x61fFE014bA17989E743c5F6cB21bF9697530B21e',
+  SWAP_ROUTER_02: '0x68b3465833FB72A70EcDF485E0e4C7bD8665Fc45',
+  NFPM: '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
+  FACTORY: '0x1af415a1EbA07a4986a52B6f2e7dE7003D82231e',
+  // Tokens / Pool (jouw setup)
+  WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+  DEFI_D: '0xd772ced5e24068fff90a0a0e6ab76e0f3a8005a6',
+  ACTIVE_POOL: '0xd64b58d3f46affdf98414d6e9a593ba04b2c086e',
+  FEE_TIER: 10000, // 1%
+  ETH_MODE: true
+} as const
+
+// Vite env (safe fallback als import.meta niet bestaat tijdens build)
+const env = (typeof import.meta !== 'undefined' ? (import.meta as any).env ?? {} : {}) as Record<string, string | undefined>
+
+/** Centrale adressen (met env-overrides waar logisch) */
 export const ADDR = {
-  // QuoterV2 + Router op Arbitrum
-  QUOTER_V2: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
-  SWAP_ROUTER_02: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+  QUOTER_V2: (env.VITE_QUOTER_V2 ?? DEFAULTS.QUOTER_V2) as `0x${string}`,
+  SWAP_ROUTER_02: (env.VITE_SUSHI_V3_ROUTER_02 ?? env.VITE_SWAP_ROUTER_02 ?? DEFAULTS.SWAP_ROUTER_02) as `0x${string}`,
+  CHAIN_ID: Number.parseInt(env.VITE_CHAIN_ID ?? String(DEFAULTS.CHAIN_ID)),
+  WETH: (env.VITE_TOKEN0 ?? env.VITE_WETH ?? DEFAULTS.WETH) as `0x${string}`,
+  DEFI_D: (env.VITE_TOKEN1 ?? DEFAULTS.DEFI_D) as `0x${string}`,
+  NFPM: (env.VITE_NFPM ?? DEFAULTS.NFPM) as `0x${string}`,
+  FACTORY: (env.VITE_FACTORY ?? DEFAULTS.FACTORY) as `0x${string}`,
+  ACTIVE_POOL: (env.VITE_POOL ?? env.VITE_POOL_ADDRESS ?? DEFAULTS.ACTIVE_POOL) as `0x${string}`,
+  POOL_FEE: Number.parseInt(env.VITE_FEE ?? String(DEFAULTS.FEE_TIER)),
+  ETH_MODE: (env.VITE_ETH_MODE ?? String(DEFAULTS.ETH_MODE)) === 'true'
+} as const
 
-  // -------------------- Nieuw: velden die Liquidity.tsx verwacht --------------------
-  // Chain id (Arbitrum One = 42161)
-  CHAIN_ID: Number.parseInt(import.meta.env?.VITE_CHAIN_ID ?? "42161"),
+/** Compat-export voor code die TICKS uit config verwacht */
+export const TICKS: number[] = []
 
-  // Token-adressen (kunnen via .env override worden gezet)
-  // token0 = WETH
-  WETH: (import.meta.env?.VITE_TOKEN0 ??
-    "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1") as `0x${string}`,
-  // token1 = DeFiD
-  DEFI_D: (import.meta.env?.VITE_TOKEN1 ??
-    "0xd772ced5e24068fff90a0a0e6ab76e0f3a8005a6") as `0x${string}`,
+// Handige alias-exports (optioneel)
+export const POOL = ADDR.ACTIVE_POOL
+export const ROUTER = ADDR.SWAP_ROUTER_02
+export const FEE_TIER = ADDR.POOL_FEE
+export const CHAIN_ID = ADDR.CHAIN_ID
 
-  // Sushi/Uniswap v3 NonfungiblePositionManager
-  NFPM: (import.meta.env?.VITE_NFPM ??
-    "0xC36442b4a4522E871399CD717aBDD847Ab11FE88") as `0x${string}`,
+/** ABIS placeholder (named-imports breken niet) */
+export const ABIS: any = undefined
 
-  // Actieve pool (WETH/DeFiD op 1%)
-  ACTIVE_POOL: (import.meta.env?.VITE_POOL ??
-    "0xd64b58d3f46affdf98414d6e9a593ba04b2c086e") as `0x${string}`,
-
-  // Fee tier (default 1% = 10000)
-  POOL_FEE: Number.parseInt(import.meta.env?.VITE_FEE ?? "10000"),
-
-  // ETH-mode toggle (optioneel, default true)
-  ETH_MODE: (import.meta.env?.VITE_ETH_MODE ?? "true") === "true",
-} as const;
-
-// -------------------- (optioneel) ABIS export --------------------
-// Liquidity.tsx heeft een eigen fallback; we exporteren ABIS alleen om named-imports niet te breken.
-// Als je later echte ABIs wilt centraliseren, zet ze hier in.
-export const ABIS: any = undefined;
-
-// -------------------- Bestaande cfg() (uitgebreid, maar backward compatible) --------------------
+/** cfg(): vorm die sommige delen van de UI verwachten (met env en ADDR terug) */
 export function cfg() {
-  // blijf je bestaande .env-waarden teruggeven
-  const envShape = {
-    VITE_CHAIN_ID: Number.parseInt(import.meta.env?.VITE_CHAIN_ID ?? "42161"),
-    VITE_TOKEN0: import.meta.env?.VITE_TOKEN0 as `0x${string}` | undefined, // WETH
-    VITE_TOKEN1: import.meta.env?.VITE_TOKEN1 as `0x${string}` | undefined, // DeFiD
-    VITE_FEE: Number.parseInt(import.meta.env?.VITE_FEE ?? "10000"),
-    VITE_NFPM: import.meta.env?.VITE_NFPM as `0x${string}` | undefined,
-    VITE_ETH_MODE: (import.meta.env?.VITE_ETH_MODE ?? "true") === "true",
-    VITE_POOL: import.meta.env?.VITE_POOL as `0x${string}` | undefined, // optional
-  };
-
-  // ➕ extra teruggeven voor Liquidity.tsx (verandert bestaand gebruik niet)
   return {
-    ...envShape,
+    VITE_CHAIN_ID: Number.parseInt(env.VITE_CHAIN_ID ?? String(DEFAULTS.CHAIN_ID)),
+    VITE_TOKEN0: env.VITE_TOKEN0 as `0x${string}` | undefined,
+    VITE_TOKEN1: env.VITE_TOKEN1 as `0x${string}` | undefined,
+    VITE_FEE: Number.parseInt(env.VITE_FEE ?? String(DEFAULTS.FEE_TIER)),
+    VITE_NFPM: env.VITE_NFPM as `0x${string}` | undefined,
+    VITE_ETH_MODE: (env.VITE_ETH_MODE ?? String(DEFAULTS.ETH_MODE)) === 'true',
+    VITE_POOL: env.VITE_POOL as `0x${string}` | undefined,
+    VITE_FACTORY: env.VITE_FACTORY as `0x${string}` | undefined,
+    VITE_SWAP_ROUTER_02: (env.VITE_SUSHI_V3_ROUTER_02 ?? env.VITE_SWAP_ROUTER_02) as `0x${string}` | undefined,
+    VITE_QUOTER_V2: env.VITE_QUOTER_V2 as `0x${string}` | undefined,
     ADDR,
-    ABIS,
-  };
+    ABIS
+  }
 }
 
-// -------------------- Pool resolver --------------------
-// Gebruik voorkeur: provided > VITE_POOL > ADDR.ACTIVE_POOL
+/** Pool resolver: provided > VITE_POOL > ADDR.ACTIVE_POOL */
 export async function resolveActivePool(
   _provider: any,
   _token0: `0x${string}`,
@@ -77,16 +77,15 @@ export async function resolveActivePool(
   _fee: number,
   provided?: `0x${string}`
 ) {
-  return (provided ?? (import.meta.env?.VITE_POOL as `0x${string}` | undefined) ?? ADDR.ACTIVE_POOL) as `0x${string}`;
+  return (provided ?? (env.VITE_POOL as `0x${string}` | undefined) ?? ADDR.ACTIVE_POOL) as `0x${string}`
 }
 
-// -------------------- Bestaande helpers (compat) --------------------
+/** Helper voor UI-toggles */
 export function isEthMode() {
-  return (import.meta.env?.VITE_ETH_MODE ?? "true") === "true";
+  return (env.VITE_ETH_MODE ?? String(DEFAULTS.ETH_MODE)) === 'true'
 }
 
-// ✅ Test-compat: bied een env-shim voor bestaande tests
-export const env = {
-  VITE_POOL_ADDRESS:
-    (typeof ADDR.ACTIVE_POOL === "string" && ADDR.ACTIVE_POOL) ? ADDR.ACTIVE_POOL : "",
-};
+/** Test-compat shim */
+export const testEnvShim = {
+  VITE_POOL_ADDRESS: ADDR.ACTIVE_POOL
+}
