@@ -1,60 +1,62 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
+import App from './App' // let op: geen .tsx
 
-// Wagmi + chains
-import { createConfig, http, WagmiProvider } from 'wagmi'
-import { arbitrum } from 'wagmi/chains'
-
-// React Query
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-// Web3Modal (optioneel als je gebruikt)
-import { createWeb3Modal } from '@web3modal/wagmi/react'
+import { WagmiProvider } from 'wagmi'
+import { http } from 'wagmi'
+import { arbitrum } from 'wagmi/chains'
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react'
 
-// --- RPC configuratie ---
-function makeDevRpcUrl() {
-  // 1) Voorkeur: key uit .env.local
-  const key = import.meta.env.VITE_ALCHEMY_API_KEY?.trim()
-  if (key) {
-    return `https://arb-mainnet.g.alchemy.com/v2/${key}`
-  }
+// ---------- Chains ----------
+const chains = [arbitrum]
 
-  // 2) Fallback: complete RPC uit VITE_ARBITRUM_RPC
-  const direct = import.meta.env.VITE_ARBITRUM_RPC?.trim()
-  if (direct) return direct
+// ---------- RPC transport ----------
+// In development: direct naar Alchemy (VITE_ALCHEMY_API_KEY uit .env.local)
+// In productie/preview: via jouw serverless proxy op Vercel (/api/rpc)
+const transport = import.meta.env.DEV
+  ? http(`https://arb-mainnet.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_API_KEY}`)
+  : http('/api/rpc')
 
-  console.error(
-    '[Wagmi] Geen dev RPC gevonden. Zet VITE_ALCHEMY_API_KEY in .env.local of VITE_ARBITRUM_RPC in .env.local/.env.'
+// ---------- WalletConnect / Web3Modal ----------
+const projectId = import.meta.env.VITE_WALLETCONNECT_ID
+if (!projectId) {
+  console.warn(
+    'VITE_WALLETCONNECT_ID ontbreekt — zet deze in .env(.local) voor lokaal en in Vercel → Environment Variables (Preview + Production).'
   )
-  return 'http://localhost:8545' // laatste redmiddel
 }
 
-const rpcUrl = import.meta.env.PROD ? '/api/rpc' : makeDevRpcUrl()
+// Metadata (optioneel, wordt soms door wallets getoond)
+const metadata = {
+  name: 'UluwatuSwap',
+  description: 'Simple Sushi v3 swap + liquidity on Arbitrum',
+  url: 'https://example.com', // zet hier gerust je Vercel URL neer
+  icons: ['https://avatars.githubusercontent.com/u/37784886?s=200&v=4']
+}
 
-// Wagmi config
-export const wagmiConfig = createConfig({
-  chains: [arbitrum],
+// Maak Wagmi-config die door Web3Modal wordt gebruikt
+const wagmiConfig = defaultWagmiConfig({
+  chains,
+  projectId: projectId || 'missing-project-id',
+  metadata,
   transports: {
-    [arbitrum.id]: http(rpcUrl),
-  },
-  ssr: false,
+    [arbitrum.id]: transport
+  }
 })
 
-// React Query client (één instance)
+// Heel belangrijk: initialiseer de modal **voordat** <App /> of useWeb3Modal wordt gebruikt
+createWeb3Modal({
+  wagmiConfig,
+  projectId: projectId || 'missing-project-id',
+  chains,
+  enableAnalytics: false // optioneel
+})
+
+// React Query client
 const queryClient = new QueryClient()
 
-// Web3Modal (alleen als jij een projectId hebt ingesteld in je env)
-const projectId = import.meta.env.VITE_WALLETCONNECT_ID
-if (projectId) {
-  createWeb3Modal({
-    wagmiConfig,
-    projectId,
-    chains: [arbitrum],
-    themeMode: 'dark',
-  })
-}
-
+// Render tree
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <WagmiProvider config={wagmiConfig}>
