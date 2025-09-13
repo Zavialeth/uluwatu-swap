@@ -22,11 +22,11 @@ if (!projectId) {
   console.warn('VITE_WALLETCONNECT_ID ontbreekt — zet deze in .env(.local) en in Vercel (Preview + Production).')
 }
 
-// 4) Optionele metadata
+// 4) Metadata (zet HIER je echte live URL)
 const metadata = {
   name: 'UluwatuSwap',
   description: 'Simple Sushi v3 swap + liquidity on Arbitrum',
-  url: 'https://example.com',
+  url: 'https://uluwatu-swap.vercel.app', // <-- zet jouw Vercel (of custom) URL
   icons: ['https://avatars.githubusercontent.com/u/37784886?s=200&v=4']
 }
 
@@ -40,7 +40,7 @@ const wagmiConfig = defaultWagmiConfig({
   }
 })
 
-// 6) Init Web3Modal — LET OP: géén "chains" key hier
+// 6) Init Web3Modal — LET OP: geen "chains" key hier
 createWeb3Modal({
   wagmiConfig,
   projectId: projectId || 'missing-project-id',
