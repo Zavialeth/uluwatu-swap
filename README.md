@@ -22,6 +22,18 @@ The goal of this project is to **learn and experiment** with modern DeFi tooling
 
 ---
 
+## 🌐 Live Demo
+
+You can try out the UluwatuSwap dApp here:  
+[https://uluwatuswap.vercel.app](https://uluwatuswap.vercel.app)
+
+> ⚠️ **Important:**  
+> - This is an **educational project only**.  
+> - The DeFiD token has **no real-world value**.  
+> - Do **not** use real funds you cannot afford to lose.
+
+---
+
 ## 🛠 Tech Stack
 
 | Layer          | Technology |
@@ -55,9 +67,9 @@ For questions, feedback, or suggestions:
 
 ---
 
-##🌴 About the Name
+## 🌴 About the Name
 
-Uluwatu is a famous surfing spot in Bali, Indonesia.
+**Uluwatu** is a famous surfing spot in Bali, Indonesia.  
 Just like surfing, diving into DeFi can be exciting and risky — so always stay balanced and ride the wave responsibly! 🌊
 
 ---
@@ -67,15 +79,16 @@ Just like surfing, diving into DeFi can be exciting and risky — so always stay
 > **Use at Your Own Risk**  
 > This project is for **educational purposes only**.  
 >
+> - The **DeFiD token has no real-world value**.  
 > - UluwatuSwap is **not audited** and may contain bugs or vulnerabilities.  
 > - **No one is responsible** for any financial losses that occur through using this app or interacting with the associated smart contracts.  
 > - **Do not use real funds** you cannot afford to lose.  
 >
 > By using this project, you acknowledge that **you assume all risks**.
 
-
 ---
 
 ## 📝 License
 
 This project is open-source and available under the [MIT License](./LICENSE).
+
