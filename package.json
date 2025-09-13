@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --project tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
     "preview": "vite preview --open",
-    "test": "vitest"
+    "test": "vitest",
+    "test:types": "tsc --project tsconfig.vitest.json --noEmit"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.87.4",
