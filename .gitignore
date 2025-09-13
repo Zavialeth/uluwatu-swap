@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node
+node_modules
+
+# Vite / build output
+.dist
+/dist
+/.vite
+dist-ssr
+
+# Env files (belangrijk: nooit secrets committen)
+.env
+.env.*
+!.env.sample      # wel een voorbeeldbestand in repo
+!.env.example     # ook een templatebestand in repo
+!.env.local.example
+
+# Lokale overrides (altijd privé houden)
+*.local
+
+# Editor directories and files
+.vscode
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
