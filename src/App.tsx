@@ -11,7 +11,7 @@ export default function App() {
   // Theme toggle
   const getInitialTheme = () => {
     const saved = localStorage.getItem('ulu-theme')
-    if (saved === 'dark' || saved === 'light') return saved
+    if (saved === 'dark' || saved === 'light') return saved as 'dark' | 'light'
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   }
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme())
@@ -44,12 +44,15 @@ export default function App() {
   const chainName = chainId ? (chainNameMap[chainId] || `Chain ${chainId}`) : 'Unknown Network'
   const onArbitrum = chainId === 42161
 
-  // Live native balance
+  // Live native balance (wagmi v2: geen `watch`, maar query-opties)
   const { data: balanceData } = useBalance({
     address,
-    watch: true,
-    enabled: Boolean(address)
+    query: {
+      refetchInterval: 10_000,          // elke 10s verversen
+      enabled: Boolean(address)         // alleen als er een adres is
+    }
   })
+
   const ethDisplay =
     balanceData?.formatted
       ? `${Number(balanceData.formatted).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${balanceData.symbol}`
