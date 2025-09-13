@@ -4,9 +4,10 @@
  * Centrale configuratie voor UluwatuSwap:
  * - Arbitrum defaults
  * - ENV-overrides via VITE_* (optioneel)
- * - Export ADDR (incl. FACTORY), TICKS, en helpers (cfg, resolveActivePool, isEthMode)
+ * - Export ADDR (incl. FACTORY), TICKS, helpers, én 'env' voor tests
  */
 
+// ----- Defaults -----
 const DEFAULTS = {
   CHAIN_ID: 42161,
   // Infra
@@ -22,10 +23,13 @@ const DEFAULTS = {
   ETH_MODE: true
 } as const
 
-// Vite env (safe fallback als import.meta niet bestaat tijdens build)
-const env = (typeof import.meta !== 'undefined' ? (import.meta as any).env ?? {} : {}) as Record<string, string | undefined>
+// ----- Vite env (safe fallback als import.meta niet bestaat tijdens build) -----
+// Belangrijk: we exporteren 'env' expliciet omdat je test die importeert.
+export const env = (typeof import.meta !== 'undefined'
+  ? ((import.meta as any).env ?? {})
+  : {}) as Record<string, string | undefined>
 
-/** Centrale adressen (met env-overrides waar logisch) */
+// ----- Centrale adressen (met env-overrides waar logisch) -----
 export const ADDR = {
   QUOTER_V2: (env.VITE_QUOTER_V2 ?? DEFAULTS.QUOTER_V2) as `0x${string}`,
   SWAP_ROUTER_02: (env.VITE_SUSHI_V3_ROUTER_02 ?? env.VITE_SWAP_ROUTER_02 ?? DEFAULTS.SWAP_ROUTER_02) as `0x${string}`,
@@ -39,7 +43,7 @@ export const ADDR = {
   ETH_MODE: (env.VITE_ETH_MODE ?? String(DEFAULTS.ETH_MODE)) === 'true'
 } as const
 
-/** Compat-export voor code die TICKS uit config verwacht */
+// ----- Compat TICKS export (voor code die dit verwacht) -----
 export const TICKS: number[] = []
 
 // Handige alias-exports (optioneel)
@@ -48,10 +52,10 @@ export const ROUTER = ADDR.SWAP_ROUTER_02
 export const FEE_TIER = ADDR.POOL_FEE
 export const CHAIN_ID = ADDR.CHAIN_ID
 
-/** ABIS placeholder (named-imports breken niet) */
+// ABIS placeholder (named-imports breken niet)
 export const ABIS: any = undefined
 
-/** cfg(): vorm die sommige delen van de UI verwachten (met env en ADDR terug) */
+// ----- cfg(): vorm die sommige UI-delen verwachten -----
 export function cfg() {
   return {
     VITE_CHAIN_ID: Number.parseInt(env.VITE_CHAIN_ID ?? String(DEFAULTS.CHAIN_ID)),
@@ -69,7 +73,7 @@ export function cfg() {
   }
 }
 
-/** Pool resolver: provided > VITE_POOL > ADDR.ACTIVE_POOL */
+// ----- Pool resolver: provided > VITE_POOL > ADDR.ACTIVE_POOL -----
 export async function resolveActivePool(
   _provider: any,
   _token0: `0x${string}`,
@@ -80,12 +84,12 @@ export async function resolveActivePool(
   return (provided ?? (env.VITE_POOL as `0x${string}` | undefined) ?? ADDR.ACTIVE_POOL) as `0x${string}`
 }
 
-/** Helper voor UI-toggles */
+// ----- Helper voor UI-toggles -----
 export function isEthMode() {
   return (env.VITE_ETH_MODE ?? String(DEFAULTS.ETH_MODE)) === 'true'
 }
 
-/** Test-compat shim */
+// ----- Test-compat shim -----
 export const testEnvShim = {
   VITE_POOL_ADDRESS: ADDR.ACTIVE_POOL
 }
