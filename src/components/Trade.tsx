@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
 import { formatUnits, parseUnits, getAddress } from 'viem'
-import { cfg, ADDR, isEthMode } from '../config'
+import { ADDR, isEthMode } from '../config'
 import { ERC20_ABI, SwapRouterABI, WETH_ABI, V3_POOL_ABI } from '../abi'
 
 // ---- helpers ----
@@ -19,16 +19,12 @@ export default function Trade() {
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
 
-  // config
-  const conf = useMemo(() => cfg(), [])
-  const TOKEN0 = getAddress(conf.VITE_TOKEN0) as `0x${string}` // WETH (UI toont ETH in ETH-mode)
-  const TOKEN1 = getAddress(conf.VITE_TOKEN1) as `0x${string}` // DeFiD
-  const DEFAULT_FEE = Number(conf.VITE_FEE ?? 10000) as 100 | 500 | 3000 | 10000
-
-  // Router (Sushi V3 compatible met Uniswap V3 SwapRouter02)
-  const ROUTER_02 = (conf.VITE_SUSHI_V3_ROUTER_02
-    ? getAddress(conf.VITE_SUSHI_V3_ROUTER_02)
-    : getAddress('0x68b3465833FB72A70EcDF485E0e4C7bD8665Fc45')) as `0x${string}`
+  // vaste config uit ADDR (nooit undefined)
+  const TOKEN0 = getAddress(ADDR.WETH) as `0x${string}`        // WETH (UI toont ETH in ETH-mode)
+  const TOKEN1 = getAddress(ADDR.DEFI_D) as `0x${string}`      // DeFiD
+  const DEFAULT_FEE = ADDR.POOL_FEE as 100 | 500 | 3000 | 10000
+  const FACTORY = getAddress(ADDR.FACTORY) as `0x${string}`
+  const ROUTER_02 = getAddress(ADDR.SWAP_ROUTER_02) as `0x${string}`
 
   // UI state
   const [direction, setDirection] = useState<'0to1' | '1to0'>('0to1')
@@ -84,12 +80,11 @@ export default function Trade() {
   // ---- pool resolver ----
   async function resolveActivePool(): Promise<{ pool:`0x${string}`, fee:number, sqrt:bigint } | null> {
     if (!publicClient) return null
-    const factory = getAddress('0x1af415a1EbA07a4986a52B6f2e7dE7003D82231e') as `0x${string}` // Sushi V3 Factory (Arbitrum)
 
     for (const fee of [DEFAULT_FEE, ...TIER_ORDER.filter(f=>f!==DEFAULT_FEE)]) {
       try {
         const pool = await publicClient.readContract({
-          address: factory,
+          address: FACTORY,
           abi: [
             { inputs:[{name:'tokenA',type:'address'},{name:'tokenB',type:'address'},{name:'fee',type:'uint24'}],
               name:'getPool', outputs:[{type:'address'}], stateMutability:'view', type:'function' }
@@ -225,6 +220,7 @@ export default function Trade() {
       let minOutWei = applySlippageBps(outUi, bps)
       if (minOutWei > outUi) minOutWei = outUi
 
+      // Bepaal één keer, hergebruik later: GEEN dubbele declaraties meer
       const zeroToOneEth = isEthMode() && direction === '0to1'
       const oneToZeroEth = isEthMode() && direction === '1to0'
 
@@ -251,19 +247,14 @@ export default function Trade() {
 
           if (zeroToOneEth) {
             if (apiValue === 0n) {
-              // API wil WETH gebruiken → pre-wrap + approve naar apiSpender
               append('[API] No value in tx for ETH→token. Pre-wrapping to WETH and approving spender…')
               await wrapEth(amountIn)
               await approveIfNeeded(tokenIn, address as `0x${string}`, apiSpender, amountIn)
-            } else {
-              append('[API] Tx carries value for ETH→token. No pre-wrap needed.')
             }
           } else {
-            // ERC20-in kant: approve naar apiSpender
             await approveIfNeeded(tokenIn, address as `0x${string}`, apiSpender, amountIn)
           }
 
-          // Simuleer exact de API-tx
           try {
             await publicClient.call({
               to: apiSpender,
@@ -276,7 +267,6 @@ export default function Trade() {
             throw new Error('API simulate revert')
           }
 
-          // Stuur de API-tx
           const hash = await walletClient.sendTransaction({
             to: apiSpender,
             data: json.tx.data as `0x${string}`,
@@ -295,14 +285,12 @@ export default function Trade() {
       let usedFallbackA = false
       if (!usedApiRoute) {
         try {
-          // Als ERC20-in: zorg voor approve; Als ETH-in: geen approve nodig
           if (!zeroToOneEth) {
             await approveIfNeeded(tokenIn, address as `0x${string}`, ROUTER_02, amountIn)
           }
 
           const deadline = BigInt(Math.floor(Date.now()/1000) + 60 * 20)
 
-          // Simuleer met minOut; zo niet, zonder minOut
           let minForTx = minOutWei
           try {
             await publicClient.simulateContract({
@@ -406,7 +394,7 @@ export default function Trade() {
         }
       }
 
-      // Auto-unwrap nétto WETH op token→ETH
+      // Auto-unwrap nétto WETH op token→ETH (géén her-declaratie!)
       if (oneToZeroEth) {
         const wethAfter = await wethBalance(address as `0x${string}`)
         const delta = wethAfter - wethBefore

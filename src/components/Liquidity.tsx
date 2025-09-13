@@ -438,7 +438,7 @@ const Liquidity: React.FC<LiquidityProps> = ({ testOverrides }) => {
       );
 
       // Wrap ETH → WETH if needed
-      if (isEthMode && wantWeth > rawWethBal) {
+      if (isEthMode() && wantWeth > rawWethBal) {
         const diff = wantWeth - rawWethBal;
         if (rawEthBal < diff)
           return addLog(`❌ Not enough ETH to wrap. Need extra ${ethers.formatUnits(diff, decWeth)} ETH.`);
