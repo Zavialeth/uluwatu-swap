@@ -1,82 +1,66 @@
-// src/main.tsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import App from './App.tsx'
 
-// wagmi + web3modal
-import { WagmiConfig, createConfig, http } from 'wagmi'
+// Wagmi + chains
+import { createConfig, http, WagmiProvider } from 'wagmi'
 import { arbitrum } from 'wagmi/chains'
-import { injected, walletConnect } from 'wagmi/connectors'
-import { createWeb3Modal } from '@web3modal/wagmi/react'
 
-// TanStack Query (voor wagmi)
+// React Query
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-// ---- ENV (safe) ----
-const projectId = (import.meta.env.VITE_WALLETCONNECT_ID as string) || ''
-const rpcArb = (import.meta.env.VITE_ARBITRUM_RPC as string) || 'https://arb1.arbitrum.io/rpc'
+// Web3Modal (optioneel als je gebruikt)
+import { createWeb3Modal } from '@web3modal/wagmi/react'
 
-// ---- Metadata voor WalletConnect (let op: URL dynamisch) ----
-const isProd = typeof window !== 'undefined' && window.location.protocol === 'https:'
-const metadata = {
-  name: 'UluwatuSwap V3 mini DEX',
-  description: 'DeFiD/ETH (Arbitrum) mini UI',
-  url: typeof window !== 'undefined'
-    ? (isProd ? window.location.origin.replace('http:', 'https:') : window.location.origin)
-    : 'http://localhost:5173',
-  icons: ['https://avatars.githubusercontent.com/u/37784886']
+// --- RPC configuratie ---
+function makeDevRpcUrl() {
+  // 1) Voorkeur: key uit .env.local
+  const key = import.meta.env.VITE_ALCHEMY_API_KEY?.trim()
+  if (key) {
+    return `https://arb-mainnet.g.alchemy.com/v2/${key}`
+  }
+
+  // 2) Fallback: complete RPC uit VITE_ARBITRUM_RPC
+  const direct = import.meta.env.VITE_ARBITRUM_RPC?.trim()
+  if (direct) return direct
+
+  console.error(
+    '[Wagmi] Geen dev RPC gevonden. Zet VITE_ALCHEMY_API_KEY in .env.local of VITE_ARBITRUM_RPC in .env.local/.env.'
+  )
+  return 'http://localhost:8545' // laatste redmiddel
 }
 
-// ---- Wagmi config met expliciete connectors & autoConnect ----
-const chains = [arbitrum]
-const wagmiConfig = createConfig({
-  chains,
+const rpcUrl = import.meta.env.PROD ? '/api/rpc' : makeDevRpcUrl()
+
+// Wagmi config
+export const wagmiConfig = createConfig({
+  chains: [arbitrum],
   transports: {
-    [arbitrum.id]: http(rpcArb)
+    [arbitrum.id]: http(rpcUrl),
   },
-  connectors: [
-    injected({ shimDisconnect: true }), // beter reconnect gedrag bij MetaMask
-    ...(projectId ? [walletConnect({ projectId, showQrModal: false, metadata })] : [])
-  ],
   ssr: false,
-  autoConnect: true
 })
 
-// ---- Web3Modal singleton init (fix voor HMR/StrictMode) ----
-declare global {
-  interface Window {
-    __W3M_INITED__?: boolean
-  }
-}
-if (projectId && !window.__W3M_INITED__) {
+// React Query client (één instance)
+const queryClient = new QueryClient()
+
+// Web3Modal (alleen als jij een projectId hebt ingesteld in je env)
+const projectId = import.meta.env.VITE_WALLETCONNECT_ID
+if (projectId) {
   createWeb3Modal({
     wagmiConfig,
     projectId,
-    chains
-    // -> Optional: themeMode: 'dark', themeVariables: { '--w3m-z-index': 2147483647 }
+    chains: [arbitrum],
+    themeMode: 'dark',
   })
-  window.__W3M_INITED__ = true
-} else if (!projectId) {
-  console.warn('VITE_WALLETCONNECT_ID ontbreekt. Connect-modal werkt beperkt in dev.')
 }
-
-// ---- Query Client ----
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 15_000
-    }
-  }
-})
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <WagmiConfig config={wagmiConfig}>
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
         <App />
-      </WagmiConfig>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   </React.StrictMode>
 )
