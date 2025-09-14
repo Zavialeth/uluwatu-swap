@@ -25,7 +25,7 @@ The goal of this project is to **learn and experiment** with modern DeFi tooling
 ## 🌐 Live Demo
 
 You can try out the UluwatuSwap dApp here:  
-[https://uluwatuswap.vercel.app](https://uluwatuswap.vercel.app)
+[https://uluwatuswap.vercel.app](https://uluwatu-swap.vercel.app)
 
 > ⚠️ **Important:**  
 > - This is an **educational project only**.  
