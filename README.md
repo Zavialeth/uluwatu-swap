@@ -10,7 +10,7 @@
 
 UluwatuSwap is a lightweight **V3 Mini DEX** that allows users to:
 
-- Swap **ETH ↔ DeFiD** (a meme token created by [Zavialeth](https://github.com/Zavialeth)).
+- Swap **ETH ↔ DeFiD** (a memecoin created by [Zavialeth](https://github.com/Zavialeth)).
 - Add liquidity to the ETH/DeFiD pool.
 - Collect fees or fully exit liquidity positions.
 
